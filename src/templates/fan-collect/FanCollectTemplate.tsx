@@ -184,11 +184,16 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
         }
 
         const metrics = getCardMetrics(image, activeProps);
-        const introProgress = interpolate(localFrame, [0, introFrames], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-          easing: Easing.bezier(0.16, 1, 0.3, 1),
-        });
+        const introProgress = interpolate(
+          localFrame,
+          [0, introFrames],
+          [0, 1],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: Easing.bezier(0.16, 1, 0.3, 1),
+          },
+        );
         const rawProgress =
           localFrame < displayFrames
             ? 0
@@ -284,6 +289,7 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
                 height: "100%",
                 objectFit: activeProps.imageFit,
                 display: "block",
+                translate: "0px -2px",
               }}
               from={-36}
             />
