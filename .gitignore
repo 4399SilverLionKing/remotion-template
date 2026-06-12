@@ -7,3 +7,4 @@ dist
 out
 test_artifacts
 public/fan-collect
+.vscode
