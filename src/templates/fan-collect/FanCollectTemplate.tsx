@@ -159,6 +159,10 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
     1,
     Math.round(activeProps.collectSeconds * fps),
   );
+  const introFrames = Math.max(
+    1,
+    Math.min(Math.round(0.36 * fps), Math.round(displayFrames * 0.42)),
+  );
   const imageStageFrames = displayFrames + collectFrames;
   const fanPivotX = activeProps.width * (activeProps.fan.pivotXRatio ?? 0.5);
   const fanPivotY = activeProps.height * (activeProps.fan.pivotYRatio ?? 0.82);
@@ -180,6 +184,11 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
         }
 
         const metrics = getCardMetrics(image, activeProps);
+        const introProgress = interpolate(localFrame, [0, introFrames], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.16, 1, 0.3, 1),
+        });
         const rawProgress =
           localFrame < displayFrames
             ? 0
@@ -229,6 +238,9 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
         const top = mix(displayCenter.y, finalCenter.y, progress);
         const shadowAlpha = mix(0.22, 0.4, progress);
         const borderAlpha = mix(0, 1, progress);
+        const introLift = mix(activeProps.height * 0.035, 0, introProgress);
+        const introScale = mix(0.94, 1, introProgress);
+        const introRotation = mix(-2.5, 0, introProgress);
         const isActive = localFrame < imageStageFrames;
 
         const cardStyle: CSSProperties = {
@@ -253,8 +265,11 @@ export const FanCollectTemplate: React.FC<FanCollectTemplateProps> = (
             44,
             progress,
           )}px rgba(0, 0, 0, ${shadowAlpha})`,
+          opacity: introProgress,
           overflow: "hidden",
-          transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+          transform: `translate(-50%, -50%) translateY(${introLift}px) scale(${introScale}) rotate(${
+            rotation + introRotation
+          }deg)`,
           transformOrigin: "50% 50%",
           zIndex: isActive ? 1000 + index : index,
         };
