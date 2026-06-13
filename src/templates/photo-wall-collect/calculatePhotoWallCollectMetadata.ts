@@ -19,11 +19,20 @@ export const getPhotoWallCollectDurationInFrames = (
   const normalized = withPhotoWallCollectDefaults(props);
   const imageCount = normalized.images.length;
   const imageSeconds = normalized.displaySeconds + normalized.collectSeconds;
+  const reviewSeconds =
+    normalized.revealSeconds +
+    normalized.revealHoldSeconds +
+    normalized.returnSeconds;
+  const deckSeconds =
+    normalized.deckCollectSeconds +
+    normalized.shuffleSeconds +
+    imageCount * reviewSeconds +
+    normalized.deckEndHoldSeconds;
 
   return Math.max(
     1,
     Math.ceil(
-      (imageCount * imageSeconds + normalized.finalHoldSeconds) *
+      (imageCount * imageSeconds + normalized.finalHoldSeconds + deckSeconds) *
         normalized.fps,
     ),
   );
