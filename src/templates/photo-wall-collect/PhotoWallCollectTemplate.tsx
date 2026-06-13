@@ -239,6 +239,22 @@ const getDeckLayout = (
   };
 };
 
+const getCollectDeckLayout = (
+  deckLayout: DeckCardLayout,
+  image: PhotoWallCollectImage,
+): DeckCardLayout => {
+  if (getAspectRatio(image) < 1) {
+    return deckLayout;
+  }
+
+  return {
+    ...deckLayout,
+    width: deckLayout.height,
+    height: deckLayout.width,
+    rotation: deckLayout.rotation + 90,
+  };
+};
+
 export const PhotoWallCollectTemplate: React.FC<
   PhotoWallCollectTemplateProps
 > = (rawProps) => {
@@ -312,6 +328,7 @@ export const PhotoWallCollectTemplate: React.FC<
 
         const wallLayout = wallLayouts[index];
         const aspectRatio = getAspectRatio(image);
+        const isLandscapeImage = aspectRatio >= 1;
         const displaySize = containSize(
           aspectRatio,
           activeProps.width * 0.82,
@@ -367,6 +384,7 @@ export const PhotoWallCollectTemplate: React.FC<
             activeProps.images.length,
           );
           const deckLayout = getDeckLayout(activeProps, stackPosition);
+          const collectDeckLayout = getCollectDeckLayout(deckLayout, image);
           const deckCollectProgress = progressBetween(
             frame,
             deckCollectStart,
@@ -375,17 +393,21 @@ export const PhotoWallCollectTemplate: React.FC<
           );
 
           progress = deckCollectProgress;
-          width = mix(wallLayout.width, deckLayout.width, deckCollectProgress);
-          height = mix(
-            wallLayout.height,
-            deckLayout.height,
+          width = mix(
+            wallLayout.width,
+            collectDeckLayout.width,
             deckCollectProgress,
           );
-          x = mix(wallLayout.x, deckLayout.x, deckCollectProgress);
-          y = mix(wallLayout.y, deckLayout.y, deckCollectProgress);
+          height = mix(
+            wallLayout.height,
+            collectDeckLayout.height,
+            deckCollectProgress,
+          );
+          x = mix(wallLayout.x, collectDeckLayout.x, deckCollectProgress);
+          y = mix(wallLayout.y, collectDeckLayout.y, deckCollectProgress);
           rotation = mix(
             wallLayout.rotation,
-            deckLayout.rotation,
+            collectDeckLayout.rotation,
             deckCollectProgress,
           );
           shadowAlpha = mix(0.34, 0.42, deckCollectProgress);
@@ -415,25 +437,45 @@ export const PhotoWallCollectTemplate: React.FC<
             const shuffleAngle =
               shuffleProgress * Math.PI * 5 +
               seededNoise(index, 17, activeProps.randomSeed) * Math.PI * 2;
+            const normalizeProgress = isLandscapeImage
+              ? progressBetween(
+                  shuffleLocal,
+                  shuffleFrames * 0.18,
+                  shuffleFrames * 0.24,
+                  easeInOut,
+                )
+              : 1;
+            const normalizedRotation = mix(
+              collectDeckLayout.rotation,
+              deckLayout.rotation,
+              normalizeProgress,
+            );
 
+            width = mix(
+              collectDeckLayout.width,
+              deckLayout.width,
+              normalizeProgress,
+            );
+            height = mix(
+              collectDeckLayout.height,
+              deckLayout.height,
+              normalizeProgress,
+            );
             x = deckLayout.x + Math.sin(shuffleAngle) * shuffleSpread;
             y =
               deckLayout.y +
               Math.cos(shuffleAngle * 0.9) * shuffleSpread * 0.24;
             rotation =
-              deckLayout.rotation +
+              normalizedRotation +
               Math.sin(shuffleAngle * 1.2) *
                 7 *
                 Math.sin(shuffleProgress * Math.PI);
             flipY = mix(0, 180, flipProgress);
-            zIndex = 4000 + index;
+            zIndex = 4000 + activeProps.images.length - stackPosition;
           }
 
           if (frame >= reviewStart) {
-            const deckFaceDownLayout = getDeckLayout(
-              activeProps,
-              stackPosition,
-            );
+            const deckFaceDownLayout = getDeckLayout(activeProps, stackPosition);
 
             width = deckFaceDownLayout.width;
             height = deckFaceDownLayout.height;
@@ -454,8 +496,12 @@ export const PhotoWallCollectTemplate: React.FC<
                 activeProps,
                 activeProps.images.length - 1,
               );
-              const flipEndFrame = Math.max(1, Math.round(revealFrames * 0.42));
-              const liftStartFrame = flipEndFrame;
+              const drawEndFrame = Math.max(1, Math.round(revealFrames * 0.36));
+              const flipStartFrame = Math.max(
+                1,
+                Math.round(revealFrames * 0.18),
+              );
+              const flipEndFrame = revealFrames;
               const slideOutEndFrame = Math.max(
                 1,
                 Math.round(returnFrames * 0.44),
@@ -466,14 +512,14 @@ export const PhotoWallCollectTemplate: React.FC<
               );
               const revealFlipProgress = progressBetween(
                 stepFrame,
-                0,
+                flipStartFrame,
                 flipEndFrame,
                 easeInOut,
               );
-              const liftProgress = progressBetween(
+              const drawProgress = progressBetween(
                 stepFrame,
-                liftStartFrame,
-                revealFrames,
+                0,
+                drawEndFrame,
                 easeOut,
               );
               const returnProgress = progressBetween(
@@ -499,25 +545,25 @@ export const PhotoWallCollectTemplate: React.FC<
               const slideInY = activeProps.height + returnTargetLayout.height;
               const offscreenRotation = -3.5;
               rotateImageForShowcase =
-                getAspectRatio(image) >= 1 && returnLocal < slideOutEndFrame;
+                isLandscapeImage && returnLocal < slideOutEndFrame;
 
               if (stepFrame < revealFrames + revealHoldFrames) {
                 const liftArc =
-                  -Math.sin(liftProgress * Math.PI) * activeProps.height * 0.04;
+                  -Math.sin(drawProgress * Math.PI) * activeProps.height * 0.04;
 
                 width = mix(
                   deckFaceDownLayout.width,
                   featureSize.width,
-                  liftProgress,
+                  drawProgress,
                 );
                 height = mix(
                   deckFaceDownLayout.height,
                   featureSize.height,
-                  liftProgress,
+                  drawProgress,
                 );
-                x = mix(deckFaceDownLayout.x, featureX, liftProgress);
-                y = mix(deckFaceDownLayout.y, featureY, liftProgress) + liftArc;
-                rotation = mix(deckFaceDownLayout.rotation, 0, liftProgress);
+                x = mix(deckFaceDownLayout.x, featureX, drawProgress);
+                y = mix(deckFaceDownLayout.y, featureY, drawProgress) + liftArc;
+                rotation = mix(deckFaceDownLayout.rotation, 0, drawProgress);
                 flipY = mix(180, 360, revealFlipProgress);
               } else if (returnLocal < slideOutEndFrame) {
                 width = featureSize.width;
@@ -621,7 +667,7 @@ export const PhotoWallCollectTemplate: React.FC<
                     src={resolvePhotoWallCollectImageSrc(image.src)}
                     alt={image.alt}
                     style={imageStyle}
-                    from={-36}
+                    from={-38}
                   />
                 </div>
               </div>

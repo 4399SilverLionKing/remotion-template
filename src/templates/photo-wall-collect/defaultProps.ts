@@ -17,7 +17,7 @@ export const photoWallCollectDefaultProps: PhotoWallCollectTemplateProps = {
   revealHoldSeconds: 0.95,
   returnSeconds: 0.9,
   deckEndHoldSeconds: 0.8,
-  background: "#211c18",
+  background: "#000000",
   imageFit: "cover",
   cardRadius: 22,
   cardBorderColor: "rgba(255, 255, 255, 0.78)",
